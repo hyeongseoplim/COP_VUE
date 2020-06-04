@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>COP 통계</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/cop.css">
+</head>
+<body style='padding:10px;'>
+
+  <h1>COP 통계</h1>
+
+  <div id="Contents" v-show='!IsLoading'>
+    <!-- <p>{{StatisticsData[0]}}</p> -->
+    <!-- <p v-for="(value, key) in GetColumns">{{value}} / {{key}}</p> -->
+
+    <table class='table table-striped table-bordered table-hover table-condensed'>
+    <thead>
+    <tr>
+      <th>학과명</th>
+      <!-- <th v-for="(k, i) in Object.keys(StatisticsData[0] || {})">{{k}}</th> -->
+      <!-- <th v-for="(v, k) in StatisticsData[0]">{{k}}</th> -->
+      <th v-for="(v, k) in GetColumns">{{k}}</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr v-for="d in StatisticsData">
+      <td>{{d.MajorName}}</td>
+      <!-- <td v-for="(v, k) in StatisticsData[0]">{{d[k]}}</td> -->
+      <td v-for="(v, k) in GetColumns">{{d[k]}}</td>
+    </tr>
+    </tbody>
+    </table>
+
+
+  </div>
+
+  <script src="/js/vue.js"></script>
+  <script src="/js/axios.min.js"></script>
+  <script>
+  var appVue = new Vue({
+    el : "#Contents",
+    data : {
+      text : "Hellow World",
+      IsLoading : true,
+      StatisticsData : []
+    },
+    created : function(){
+      var that = this;
+      axios.get('http://localhost:3000/Statistics/ka3794', { params: { ID: 12345 } })
+        .then(function (response) {
+          that.StatisticsData = response.data[0];
+          that.IsLoading = false;
+        })
+        .catch(function (error) {
+          console.log(error);
+        })
+        .then(function () { // finally
+        });
+    },
+    computed : {
+      // GetColumns : function(){
+      //   console.warn('GetColumns');
+      //   if(this.StatisticsData.length == 0) return [];
+      //   return Object.keys(this.StatisticsData[0]).slice(2);
+      // },
+      GetColumns : function(){
+        console.warn('GetColumns');
+        if(this.StatisticsData.length == 0) return {};
+        var columns = Object.assign({}, this.StatisticsData[0]);
+        delete columns.MajorCode;
+        delete columns.MajorName;
+        return columns;
+        // return this.StatisticsData[0];
+      }
+    },
+    methods : {
+      // GetColumns : function(){
+      //   console.warn('GetColumns');
+      //   if(this.StatisticsData.length == 0) return [];
+      //   return Object.keys(this.StatisticsData[0]);
+      // }
+    }
+  });
+
+
+
+  /*
+  axios.post('/user', {
+    firstName: 'Fred',
+    lastName: 'Flintstone'
+  })
+  .then(function (response) {
+    console.log(response);
+  })
+  .catch(function (error) {
+    console.log(error);
+  });
+  */
+
+  /*
+  2020-06-04
+    v-for in object
+    computed vs methods
+    DB random data insert
+    
+    project copy
+    list proc
+    by recruittimecode, by date
+
+  */
+
+  </script>
+</body>
+</html>
