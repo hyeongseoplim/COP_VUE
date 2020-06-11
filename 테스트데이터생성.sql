@@ -1,9 +1,15 @@
+USE [COP]
+Go
+
 Select
 	number,
 	ABS(CAST(CAST(NEWID() AS VARBINARY) AS int)) % 10000 / 100 as column3
 	--ABS(CAST(CAST(NEWID() AS VARBINARY) AS int)) % 10000 / 1000 % 5 + 1 as column3
 From master..spt_values
 Where Type = 'P'
+
+
+
 
 --select NEWID()
 --select rand()
@@ -17,16 +23,10 @@ Where Type = 'P'
 --and number < 10
 
 
-select * From dbo.UnivService_MajorInfo
-select * From dbo.UnivService_SelectionInfo
 
 
-select *
-From dbo.SelectionMajor_Personnel
 
 
-select *
-From dbo.Stu_CommonInfo
 
 
 /*
@@ -225,12 +225,172 @@ values (408401, '1', '수시1차', '0', '', '20', '대졸자', 'O')
 , (408401, '1', '수시1차', '0', '', '57', '북한이탈주민', 'O')
 , (408401, '1', '수시1차', '0', '', '54', '기초생활차상위계층', 'O')
 
-
+Drop Table IF Exists dbo.SelectionMajor_Personnel
+GO
 select 
 	SelectionId,
 	MajorId,
-	ABS(CAST(CAST(NEWID() AS VARBINARY) AS int)) % 10000 / 100 + 10 as Personnel
+	ABS(CAST(CAST(NEWID() AS VARBINARY) AS int)) % 10000 / 300 + 10 as Personnel
 INTO dbo.SelectionMajor_Personnel
-From dbo.UnivService_MajorInfo UMI,
- dbo.UnivService_SelectionInfo USI
+From dbo.UnivService_MajorInfo UMI, dbo.UnivService_SelectionInfo USI
+
+truncate table dbo.Stu_CommonInfo
+GO
+insert into dbo.Stu_CommonInfo(
+	UnivServiceId
+	, MajorId
+	, SelectionId
+	, PassOrdinal
+	, PayOrdinal
+	, RefundOrdinal
+	, ExamNo
+	, StuName
+	, StuSSN
+	, PassStatus
+	, EvalStatus
+	, RegistStatus
+	, RefundStatus
+	, MajorRank
+	, SpareRank
+	, Rdate
+)
+select 
+	408401 UnivServiceId
+	, MajorId
+	, SelectionId
+	, 0 PassOrdinal
+	, 0 PayOrdinal
+	, 0 RefundOrdinal
+	, Right('00000000' + Cast(RowNo as varchar), 8) ExamNo
+	, '홍길동-' + Cast(RowNo as varchar) StuName
+	, '' StuSSN
+	, 0 PassStatus
+	, 0 EvalStatus
+	, 0 RegistStatus
+	, 0 RefundStatus
+	, 0 MajorRank
+	, 0 SpareRank
+	, GetDate() Rdate
+From
+(
+	Select
+		SelectionId
+		, MajorId
+		, ROW_NUMBER() OVER(Order By selectionid, majorid, p.number) AS RowNo
+	From dbo.SelectionMajor_Personnel A
+	inner join master..spt_values P On (A.Personnel * 3) > P.Number
+	Where P.Type = 'P'
+) Result
+
+
+--SElect 
+--	SRSID,
+--	(Case 
+--		When RowNo <= Personnel Then 1 
+--		Else 0 
+--	End) As PassStatus,
+--	RowNo AS MajorRank,
+--	(Case 
+--		When RowNo > Personnel ANd RowNo <= Personnel * 2 Then RowNo - Personnel
+--		Else 0 
+--	End) As SpareRank
+Update S SEt
+	S.PassOrdinal = (Case 
+		When RowNo <= Personnel Then 1 
+		Else 0 
+	End),
+	S.PassStatus = (Case 
+		When RowNo <= Personnel Then 1 
+		Else 0 
+	End),
+	MajorRank = RowNo,
+	SpareRank = (Case 
+		When RowNo > Personnel ANd RowNo <= Personnel * 2 Then RowNo - Personnel
+		Else 0 
+	End)
+From
+(
+	select
+		ROW_NUMBER() Over(Partition By SC.selectionId, SC.MajorId Order by NEWID()) As RowNo,
+		SC.selectionId,
+		SC.MajorId,
+		Personnel,
+		SRSID
+	from dbo.Stu_CommonInfo SC
+	inner join dbo.SelectionMajor_Personnel P On SC.selectionId = P.selectionId
+		And SC.MajorId = P.MajorId
+) Result
+inner join dbo.Stu_CommonInfo S On Result.SRSID = S.SRSID
+
+
+Update S SEt S.RegistStatus = 1
+From 
+(
+	select Top 80 Percent
+		SRSID
+	From dbo.Stu_CommonInfo
+	Where PassStatus = 1
+	Order By NEWID()
+) R
+Inner Join dbo.Stu_CommonInfo S On R.SRSID = S.SRSID
+
+
+Insert Into dbo.Stu_PayInfo(
+	UnivServiceId
+	, SRSID
+	, ExamNo
+	, BankCode
+	, BankAccount
+	, Amount
+	, PayStatus
+	, PayMethod
+	, PayDate
+	, EditLogId
+)
+select
+	UnivServiceId
+	, SRSID
+	, ExamNo
+	, '04' BankCode
+	, '1234567890' BankAccount
+	, 3000000 Amount
+	, (Case When PassStatus = 1 And RegistStatus = 1 Then 1 Else 0 End) PayStatus
+	, (Case When PassStatus = 1 And RegistStatus = 1 Then 'Virtual' End) PayMethod
+	, (Case When PassStatus = 1 And RegistStatus = 1 Then GetDate() - (ABS(CAST(CAST(NEWID() AS VARBINARY) AS int)) % 10000 / 1000) End) PayDate
+	, 0 AS EditLogId
+From dbo.Stu_CommonInfo
+
+
+Insert INto dbo.Stu_TuitionInfo(
+	UnivServiceId
+	, SRSID
+	, TuitionId
+	, SelectionId
+	, MajorId
+	, TuitionName
+	, TuitionOrdering
+	, Amount
+	, StatusCode
+	, SelectFlag
+	, PayFlag
+)
+select 
+	UnivServiceId
+	, SRSID
+	, 0 TuitionId
+	, SelectionId
+	, MajorId
+	, TuitionName
+	, TuitionOrdering
+	, Amount
+	, 'EM' StatusCode
+	, 1 SelectFlag
+	, RegistStatus as PayFlag
+From dbo.Stu_CommonInfo S
+cross join (
+	select 1 As TuitionOrdering, '입학금' as TuitionName, 1000000 AS Amount UNION ALL
+	select 2 As TuitionOrdering, '수업료' as TuitionName, 2000000 AS Amount
+) T
+Order BY SRSID
+
 */
