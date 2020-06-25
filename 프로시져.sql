@@ -94,9 +94,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		, Sum(Case When USI.SelectionCode = '57' And Stu.RegistStatus = 1 Then 1 Else 0 End) [∫œ«—¿Ã≈ª¡÷πŒ_µÓ∑œ¿⁄]
 		, Sum(Case When USI.SelectionCode = '57' And Stu.RegistStatus = 0 Then 1 Else 0 End) [∫œ«—¿Ã≈ª¡÷πŒ_πÃµÓ∑œ¿⁄]
 
-	From dbo.Stu_CommonInfo_4084 Stu
-	Inner Join dbo.UnivService_SelectionInfo_4084 USI On Stu.SelectionId = USI.SelectionId
-	Inner Join dbo.UnivService_MajorInfo_4084 UMI On Stu.MajorId = UMI.MajorId
+	From dbo.Stu_CommonInfo Stu
+	Inner Join dbo.UnivService_SelectionInfo USI On Stu.SelectionId = USI.SelectionId
+	Inner Join dbo.UnivService_MajorInfo UMI On Stu.MajorId = UMI.MajorId
 	Where Stu.UnivServiceID = 408401
 	And Stu.PassStatus = 1
 	Group By UMI.MajorCode
